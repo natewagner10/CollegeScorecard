@@ -1,0 +1,578 @@
+---
+title: "College Scorecard Data Analysis"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+##### *Olivia Roberts*
+##### *Nate Wagner*
+##### *October 24, 2019*
+
+
+
+## Introduction 
+
+First calculated in the mid-90’s, graduation rate keeps record of full-time, first-time students who start college and graduate 4 years later. If graduation rates at an institution are low, it can be inferred that students do not get the academic support they need to succeed, they are disappointed by the faculty or staff, or that they find life at the school unaffordable. Due to the significant financial impact that secondary education has on the economy the government created a College Scorecard to provide reliable and unbiased information about college performance’ (1). It is pertinent for institutions to measure and improve their graduation rate as the number impacts the amount of performance based funding awarded to them by the government. In this analysis, we evaluate and assess the factors that most significantly influence an institution’s graduation rate for the years 2009- 2016 (2).
+
+
+1.    https://collegescorecard.ed.gov/assets/UsingFederalDataToMeasureAndImprovePerformance.pdf
+2.    https://collegescorecard.ed.gov/data/
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+# Install Packages & Set Working directory
+library(readr)
+library(dplyr)
+library(reshape)
+library(RgoogleMaps)
+library(ggmap)
+library(tidyverse)
+library(gridExtra)
+library(googleVis)
+library(pander)
+library(knitr)
+library(reticulate)
+library(kableExtra)
+library(caret)
+#install.packages("caret")
+#install.packages("kableExtra")
+#install.packages("reticulate")
+#install.packages("pander")
+#install.packages("knitr")
+#install.packages("googleVis")
+#install.packages("RgoogleMaps")
+#install.packages('reshape')
+#install.packages('tidyverse')
+#install.packages('ggmap')
+#install.packages("gridExtra")
+
+project.dir = "/Users/natewagner/Documents/Data_munging_project/"
+#setwd(project.dir)
+
+```
+
+
+## Import Data
+
+First step was to read the data into R by using sapply(), and passing in the files and the read_csv function.
+```{r}
+# files <- dir(path = "~/Documents/Data_munging_project/CollegeScorecard_Raw_Data")
+# data <- sapply(files, read_csv, simplify=FALSE)
+```
+
+
+We then added a year column to each file.
+```{r}
+# data$MERGED1996_97_PP.csv$YEAR <- 1996
+# data$MERGED1997_98_PP.csv$YEAR <- 1997
+# data$MERGED1998_99_PP.csv$YEAR <- 1998
+# data$MERGED1999_00_PP.csv$YEAR <- 1999
+# data$MERGED2000_01_PP.csv$YEAR <- 2000
+# data$MERGED2001_02_PP.csv$YEAR <- 2001
+# data$MERGED2002_03_PP.csv$YEAR <- 2002
+# data$MERGED2003_04_PP.csv$YEAR <- 2003
+# data$MERGED2004_05_PP.csv$YEAR <- 2004
+# data$MERGED2005_06_PP.csv$YEAR <- 2005
+# data$MERGED2006_07_PP.csv$YEAR <- 2006
+# data$MERGED2007_08_PP.csv$YEAR <- 2007
+# data$MERGED2008_09_PP.csv$YEAR <- 2008
+# data$MERGED2009_10_PP.csv$YEAR <- 2009
+# data$MERGED2010_11_PP.csv$YEAR <- 2010
+# data$MERGED2011_12_PP.csv$YEAR <- 2011
+# data$MERGED2012_13_PP.csv$YEAR <- 2012
+# data$MERGED2013_14_PP.csv$YEAR <- 2013
+# data$MERGED2014_15_PP.csv$YEAR <- 2014
+# data$MERGED2015_16_PP.csv$YEAR <- 2015
+# data$MERGED2016_17_PP.csv$YEAR <- 2016
+# data$MERGED2017_18_PP.csv$YEAR <- 2017
+```
+
+
+
+Then we wrote each csv with the updated year column to files, where they were then merged in the command line.
+```{r}
+
+# write_csv(data$MERGED1996_97_PP.csv, "college_scorecard1996.csv")
+# write_csv(data$MERGED1997_98_PP.csv, "college_scorecard1997.csv")
+# write_csv(data$MERGED1998_99_PP.csv, "college_scorecard1998.csv")
+# write_csv(data$MERGED1999_00_PP.csv, "college_scorecard1999.csv")
+# write_csv(data$MERGED2000_01_PP.csv, "college_scorecard2000.csv")
+# write_csv(data$MERGED2001_02_PP.csv, "college_scorecard2001.csv")
+# write_csv(data$MERGED2002_03_PP.csv, "college_scorecard2002.csv")
+# write_csv(data$MERGED2003_04_PP.csv, "college_scorecard2003.csv")
+# write_csv(data$MERGED2004_05_PP.csv, "college_scorecard2004.csv")
+# write_csv(data$MERGED2005_06_PP.csv, "college_scorecard2005.csv")
+# write_csv(data$MERGED2006_07_PP.csv, "college_scorecard2006.csv")
+# write_csv(data$MERGED2007_08_PP.csv, "college_scorecard2007.csv")
+# write_csv(data$MERGED2008_09_PP.csv, "college_scorecard2008.csv")
+# write_csv(data$MERGED2009_10_PP.csv, "college_scorecard2009.csv")
+# write_csv(data$MERGED2010_11_PP.csv, "college_scorecard2010.csv")
+# write_csv(data$MERGED2011_12_PP.csv, "college_scorecard2011.csv")
+# write_csv(data$MERGED2012_13_PP.csv, "college_scorecard2012.csv")
+# write_csv(data$MERGED2013_14_PP.csv, "college_scorecard2013.csv")
+# write_csv(data$MERGED2014_15_PP.csv, "college_scorecard2014.csv")
+# write_csv(data$MERGED2015_16_PP.csv, "college_scorecard2015.csv")
+# write_csv(data$MERGED2016_17_PP.csv, "college_scorecard2016.csv")
+# write_csv(data$MERGED2017_18_PP.csv, "college_scorecard2017.csv")
+
+
+# Command used to merge data:
+#awk '(NR == 1) || (FNR > 1)' *.csv > CollegeData.csv
+```
+
+
+The file was read into R, and then used select() to subset only the columns of interest. We then wrote that to "merged.csv" so we don't have to load the entire dataset into R every time. 
+```{r}
+#collegeDataSubset <- read_csv("CollegeData.csv")
+
+#collegeDataSubset <- select(CollegeData.csv, YEAR, C150_4, AVGFACSAL, COSTT4_A, COSTT4_P, TUITIONFEE_IN, TUITIONFEE_OUT, TUITIONFEE_PROG, TUITFTE, INEXPFTE, PCTPELL, PCTFLOAN, UG25ABV, UNITID, INSTNM, CITY, STABBR, ZIP, NUMBRANCH, HIGHDEG, CONTROL, LOCALE2, LATITUDE, LONGITUDE, ADM_RATE, ADM_RATE_ALL, SAT_AVG, ACTCMMID, UGDS, UG, UGDS_WHITE, UGDS_BLACK, UGDS_HISP, UGDS_ASIAN, NPT4_PUB, NPT4_PRIV, PAR_ED_PCT_1STGEN, PAR_ED_PCT_MS, PAR_ED_PCT_HS, PAR_ED_PCT_PS, DEP_INC_AVG, DEBT_MDN, GRAD_DEBT_MDN, WDRAW_DEBT_MDN, LO_INC_DEBT_MDN, MD_INC_DEBT_MDN, HI_INC_DEBT_MDN, FEMALE, FAMINC, MD_FAMINC, MN_EARN_WNE_P10, MD_EARN_WNE_P10)
+
+#write_csv(collegeDataSubset, "merged.csv")
+
+```
+
+
+
+## Data Validation
+
+
+Read in new data as college_scorecard and set the values "NULL" and "Privacy Suppressed" to NA. Also set all numeric variables to type "numeric". 
+```{r message=FALSE, warning=FALSE}
+# read in new data
+college_scorecard <- read_csv("merged.csv")
+#str(college_scorecard)
+
+
+# set all NULL, PrivacySuppressed to NA
+college_scorecard[college_scorecard == "NULL"] <- NA
+college_scorecard[college_scorecard == "PrivacySuppressed"] <- NA
+
+# change data types:
+college_scorecard$YEAR <- as.numeric(college_scorecard$YEAR)
+college_scorecard$C150_4 <- as.numeric(college_scorecard$C150_4)
+college_scorecard$AVGFACSAL <- as.numeric(college_scorecard$AVGFACSAL)
+college_scorecard$COSTT4_A <- as.numeric(college_scorecard$COSTT4_A)
+college_scorecard$COSTT4_P <- as.numeric(college_scorecard$COSTT4_P)
+college_scorecard$TUITIONFEE_IN <- as.numeric(college_scorecard$TUITIONFEE_IN)
+college_scorecard$TUITIONFEE_OUT <- as.numeric(college_scorecard$TUITIONFEE_OUT)
+college_scorecard$TUITIONFEE_PROG <- as.numeric(college_scorecard$TUITIONFEE_PROG)
+college_scorecard$TUITFTE <- as.numeric(college_scorecard$TUITFTE)
+college_scorecard$INEXPFTE <- as.numeric(college_scorecard$INEXPFTE)
+college_scorecard$PCTPELL <- as.numeric(college_scorecard$PCTPELL)
+college_scorecard$PCTFLOAN <- as.numeric(college_scorecard$PCTFLOAN)
+college_scorecard$UG25ABV <- as.numeric(college_scorecard$UG25ABV)
+college_scorecard$LATITUDE <- as.numeric(college_scorecard$LATITUDE)
+college_scorecard$LONGITUDE <- as.numeric(college_scorecard$LONGITUDE)
+college_scorecard$ADM_RATE <- as.numeric(college_scorecard$ADM_RATE)
+college_scorecard$ADM_RATE_ALL <- as.numeric(college_scorecard$ADM_RATE_ALL)
+college_scorecard$SAT_AVG <- as.numeric(college_scorecard$SAT_AVG)
+college_scorecard$ACTCMMID <- as.numeric(college_scorecard$ACTCMMID)
+college_scorecard$UG <- as.numeric(college_scorecard$UG)
+college_scorecard$UGDS_WHITE <- as.numeric(college_scorecard$UGDS_WHITE)
+college_scorecard$UGDS_BLACK <- as.numeric(college_scorecard$UGDS_BLACK)
+college_scorecard$UGDS_HISP <- as.numeric(college_scorecard$UGDS_HISP)
+college_scorecard$UGDS_ASIAN <- as.numeric(college_scorecard$UGDS_ASIAN)
+college_scorecard$NPT4_PUB <- as.numeric(college_scorecard$NPT4_PUB)
+college_scorecard$NPT4_PRIV <- as.numeric(college_scorecard$NPT4_PRIV)
+college_scorecard$PAR_ED_PCT_1STGEN <- as.numeric(college_scorecard$PAR_ED_PCT_1STGEN)
+college_scorecard$PAR_ED_PCT_MS <- as.numeric(college_scorecard$PAR_ED_PCT_MS)
+college_scorecard$PAR_ED_PCT_HS <- as.numeric(college_scorecard$PAR_ED_PCT_HS)
+college_scorecard$PAR_ED_PCT_PS <- as.numeric(college_scorecard$PAR_ED_PCT_PS)
+college_scorecard$DEP_INC_AVG <- as.numeric(college_scorecard$DEP_INC_AVG)
+college_scorecard$DEBT_MDN <- as.numeric(college_scorecard$DEBT_MDN)
+college_scorecard$GRAD_DEBT_MDN <- as.numeric(college_scorecard$GRAD_DEBT_MDN)
+college_scorecard$WDRAW_DEBT_MDN <- as.numeric(college_scorecard$WDRAW_DEBT_MDN)
+college_scorecard$LO_INC_DEBT_MDN <- as.numeric(college_scorecard$LO_INC_DEBT_MDN)
+college_scorecard$MD_INC_DEBT_MDN <- as.numeric(college_scorecard$MD_INC_DEBT_MDN)
+college_scorecard$HI_INC_DEBT_MDN <- as.numeric(college_scorecard$HI_INC_DEBT_MDN)
+college_scorecard$FEMALE <- as.numeric(college_scorecard$FEMALE)
+college_scorecard$FAMINC <- as.numeric(college_scorecard$FAMINC)
+college_scorecard$MD_FAMINC <- as.numeric(college_scorecard$MD_FAMINC)
+college_scorecard$MN_EARN_WNE_P10 <- as.numeric(college_scorecard$MN_EARN_WNE_P10)
+college_scorecard$MD_EARN_WNE_P10 <- as.numeric(college_scorecard$MD_EARN_WNE_P10)
+
+
+```
+
+
+
+## Missing Values
+
+There is definitely significant missing data, with roughly 71% of graduation rate missing of roughly 154,000 rows.
+
+Here is total missing data for variables with above average missing data. 
+```{r message=FALSE, warning=FALSE}
+
+sum.NA.total <- college_scorecard %>%
+  select(everything()) %>%
+  summarise_all(funs(sum(is.na(.))))
+SumNA <- sum.NA.total %>% map_dbl(sum)
+test <- SumNA[SumNA > rowMeans(sum.NA.total)] 
+kable(test, format = "markdown")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Here is the sum of missing data by year
+sum.NA.year <- college_scorecard %>%
+  select(everything()) %>%
+  group_by(YEAR) %>%
+  summarise_all(funs(sum(is.na(.))))
+```
+
+
+Here is the % of missing data for the column and only variables with above average missing data.
+```{r message=FALSE, warning=FALSE}
+PropOfNA.total <- (sum.NA.total/nrow(college_scorecard))*100
+SumNA.prop <- PropOfNA.total %>% map_dbl(sum)
+prop <- SumNA.prop[SumNA.prop > rowMeans(PropOfNA.total)]
+kable(prop, format = "markdown")
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Here is the percent of missing data by year
+PropOfNA.year <- college_scorecard %>%
+  select(everything()) %>%
+  group_by(YEAR) %>%
+  summarise_all(funs(mean(is.na(.))))
+
+```
+
+
+
+## Exploratory Data Analysis
+
+
+We found that graduation rate ranges from 0.00% to 100%. Also the mean is equal to the median, indicating that there is not significant skew in the data.
+```{r message=FALSE, warning=FALSE}
+summary(college_scorecard$C150_4)
+```
+
+
+Number of observations with graduation rate equal to zero:
+```{r message=FALSE, warning=FALSE}
+zero <- select(college_scorecard, C150_4, YEAR, INSTNM) %>% dplyr::filter(C150_4 == 0) %>% count()
+kable(zero)
+```
+
+
+Number of observations with graduation rate equal to one:
+```{r message=FALSE, warning=FALSE}
+one <- select(college_scorecard, C150_4, YEAR, INSTNM) %>% dplyr::filter(C150_4 == 1) %>% count()
+kable(one)
+```
+
+
+Here we have schools with graduation rate equal to zero, ordered by number of undergrads
+```{r message=FALSE, warning=FALSE}
+query <- select(college_scorecard, INSTNM, YEAR, C150_4, UG) %>% dplyr::filter(C150_4 == 0) %>% arrange(UG)
+top10.query <- head(query, 10)
+kable(top10.query, format = 'markdown')
+ 
+```
+
+
+Here we have schools with graduation rate equal to one, ordered by number of undergrads
+```{r message=FALSE, warning=FALSE}
+
+#schools with grad rate == 1, ordered by # undergrads
+query2 <- select(college_scorecard, INSTNM, YEAR, C150_4, UG) %>% dplyr::filter(C150_4 == 1) %>% arrange(UG)
+top10.query2 <- head(query2, 10)
+kable(top10.query2, format = 'markdown')
+
+```
+We decided to look up some of these schools with graduation rates equal to zero. Some of the schools were new, some are just very small, and some we could find no information on. We decided to leave out rows where the graduation rate was equal to zero. It doesn't make much sense for a school with 861 undergrades to have a graduation rate of zero for a particular year.
+
+
+
+
+We removed rows with graduation rate equal to zero and rows with NA graduation rate:
+```{r message=FALSE, warning=FALSE}
+
+# To leave out rows with grad rate == 0 or NA
+college1 <- college_scorecard %>% dplyr::filter(college_scorecard$C150_4 != 0)
+college <- college1 %>% filter(!is.na(college1$C150_4))
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# confirm it worked:
+zero.college <- select(college, C150_4, YEAR, INSTNM) %>% dplyr::filter(C150_4 == 0) %>% count()
+kable(zero.college)
+# check how many NAs we have in new DF
+sum.NA.total.college <- college %>%
+  select(everything()) %>%
+  summarise_all(funs(sum(is.na(.))))
+
+```
+
+
+## Analyze Response
+
+Over time we can see there has been more data collected / school participation.
+```{r message=FALSE, warning=FALSE}
+query3 <- select(college, C150_4, YEAR) %>% group_by(YEAR) %>% count()
+grad.rate.bar <- ggplot(query3, aes(YEAR, n)) + geom_bar(stat="identity", width = 0.5, fill="tomato2") + labs(title = "Number of Observations by Year", y = "Count", x = "Year") + theme_classic()
+grad.rate.bar
+```
+
+
+There has been a steady graduation rate over time. 
+```{r message=FALSE, warning=FALSE}
+
+query3.1 <- select(college, C150_4, YEAR) %>% group_by(YEAR) %>% summarise(average = mean(C150_4))
+grad.rate.by.year <- ggplot(query3.1, aes(YEAR, average)) + geom_bar(stat="identity", width = 0.5, fill="tomato2") + labs(title = "Average Graduation Rate by Year", y = "Average Graduation Rate", x = "Year") + theme_classic()
+grad.rate.by.year
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+mean(college$C150_4)
+sd(college$C150_4)
+```
+
+
+The distribution of graduation rate is approximately normal with a mean of 0.49 and standard deviation of 0.21.
+```{r message=FALSE, warning=FALSE}
+
+grad.rate.hist <- ggplot(college, aes(x = C150_4)) + geom_histogram(color="darkblue", fill="lightblue") + labs(title = "Histogram of Graduation Rate",x = "Graduation Rate") + theme_classic()
+grad.rate.hist
+```
+
+
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+data <- read.csv("state_grad.csv", header=TRUE)
+df<- data.frame(data$State, data$Average)
+attach(df)
+options(gvis.plot.tag="chart")
+options(gvis.plot.tag=NULL)
+#options(gvis.print.tag="html")
+GeoStates <- gvisGeoChart(df, "data.State", "data.Average", options = list(region = "US", displayMode ="regions", resolution = "provinces", width = 600, height = 400))
+plot(GeoStates) 
+#head(data)
+detach(df)
+
+```
+
+
+
+Here is a map of average graduation rate by state, with darker green colors indicating a higher average graduation rate.
+```{r pressure, echo=FALSE, fig.cap="A caption", out.width = '100%'}
+knitr::include_graphics("Map.png")
+```
+
+An interactive map:
+http://127.0.0.1:12642/custom/googleVis/GeoChartID99057bbae7ce.html
+
+
+Here we have the bottom ten lowest average graduation rate of our sample. 
+```{r message=FALSE, warning=FALSE}
+bottom10 <- df %>% arrange(data.Average)
+colnames(bottom10)[colnames(bottom10) == "data.State"] <- "State"
+colnames(bottom10)[colnames(bottom10) == "data.Average"] <- "Average Graduation Rate"
+kable(bottom10[1:10,], format = "markdown")
+```
+
+
+Here we have the top ten highest average graduation rate of our sample. 
+```{r message=FALSE, warning=FALSE}
+top10 <- df %>% arrange(desc(data.Average))
+colnames(top10)[colnames(top10) == "data.State"] <- "State"
+colnames(top10)[colnames(top10) == "data.Average"] <- "Average Graduation Rate"
+kable(top10[1:10,], format = "markdown")
+```
+
+
+## Split Data Into Test and Train
+```{r message=FALSE, warning=FALSE}
+# set seed:
+set.seed(1234)
+
+# create an ID for each row:
+college <- college %>% mutate(id = row_number())
+
+#Create training set
+college.train <- college %>% sample_frac(.70)
+
+#Create test set
+college.test  <- anti_join(college, college.train, by = 'id')
+
+# took numeric columns and exported to CSV for python file
+numeric.columns <- dplyr::select_if(college.train, is.numeric)
+#write_csv(numeric.columns, "numeric.columns.csv")
+```
+
+
+## Correlation Matrix 
+```{r message=FALSE, warning=FALSE}
+# compute cor from all numeric columns:
+cor.matrix <- round(cor(numeric.columns, use = "pairwise"), 2)
+
+# melt the cor matrix:
+cor.matrix.melt <- melt(cor.matrix)
+```
+
+
+```{r fig2, fig.height = 15, fig.width = 20, fig.align = "center"}
+# plot cor matrix
+ggplot(data = cor.matrix.melt, aes(x=X1, y=X2, fill=value)) + 
+  geom_tile() + theme(axis.text.x = element_text(angle=65, vjust=0.6))
+```
+
+
+All variables with absolute value of correlation greater than 0.50:
+```{r message=FALSE, warning=FALSE}
+# get corr of grad rate vs everything else:
+grad.rate.r <- data.frame(cor.matrix[2,])
+colnames(grad.rate.r)[colnames(grad.rate.r) == "cor.matrix.2..."] <- "Correlation"
+
+# subset data to return all varaibles with cor > 0.50:
+grad.rate.r.sub <- subset(grad.rate.r, abs(Correlation) > 0.50)
+kable(grad.rate.r.sub, format = 'markdown')
+```
+
+
+
+Now we took a subset of the data with only those variables above.
+```{r message=FALSE, warning=FALSE}
+# subset data to return all columns with cor < 0.50
+college.train.highR <- select(college.train, C150_4, COSTT4_A, TUITIONFEE_OUT, SAT_AVG, NPT4_PUB, PAR_ED_PCT_1STGEN, PAR_ED_PCT_HS, PAR_ED_PCT_PS, DEP_INC_AVG, FAMINC)
+```
+
+
+
+Looped through to compute scatter plots vs graduation rate.
+```{r message=FALSE, warning=FALSE}
+# function to plot all variables of interest vs graduation rate:
+plotScatFunc <- function(x, na.rm = TRUE, ...) {
+  nm <- names(x)
+  for (i in seq_along(nm)) {
+print(ggplot(x, aes_string(x = nm[i], y= nm[1])) + geom_point(alpha = 0.3, fill = "blue") + 
+  geom_smooth(method = "lm")) + theme_classic()
+
+  }
+}
+
+plotScatFunc(college.train.highR)
+```
+
+
+## Predict Graduation Rate With Linear Regression:
+
+We started by grabbing only complete cases: 
+```{r message=FALSE, warning=FALSE}
+# test:
+college.test.highR <- select(college.test, C150_4, COSTT4_A, TUITIONFEE_OUT, SAT_AVG, NPT4_PUB, PAR_ED_PCT_1STGEN, PAR_ED_PCT_HS, PAR_ED_PCT_PS, DEP_INC_AVG, FAMINC)
+college.test.highR.com <- college.test.highR %>% filter(complete.cases(.))
+
+# train:
+college.train.highR.com <- college.train.highR %>% filter(complete.cases(.))
+```
+
+
+
+Now to confirm train data with complete cases is consistent with the data:
+```{r message=FALSE, warning=FALSE}
+
+# GGPLOT hist of grad rate for train data
+grad.rate.train.hist <- ggplot(college.train.highR.com, aes(x = C150_4)) + geom_histogram(color="darkblue", fill="lightblue") + labs(title = "Train Data",x = "Graduation Rate") + theme_classic()
+
+
+college.train.highR.year <- select(college.train, YEAR, C150_4, COSTT4_A, TUITIONFEE_OUT, SAT_AVG, NPT4_PUB, PAR_ED_PCT_1STGEN, PAR_ED_PCT_HS, PAR_ED_PCT_PS, DEP_INC_AVG, FAMINC)
+college.train.highR.year.com <- college.train.highR.year %>% filter(complete.cases(.))
+
+# GGPLOT bar of grad rate by year train data
+query5 <- select(college.train.highR.year.com, C150_4, YEAR) %>% group_by(YEAR) %>% count()
+
+
+grad.rate.train.bar <- ggplot(query5, aes(YEAR, n)) + geom_bar(stat="identity", width = 0.5, fill="tomato2") + 
+labs(title = "Train Data", y = "Count", x = "Year") + theme_classic()
+```
+
+
+The distribution of graduation rate is still approximately normal with mean 0.49.
+```{r message=FALSE, warning=FALSE}
+grid.arrange(grad.rate.hist, grad.rate.train.hist, ncol=2)
+```
+
+
+However, we now only have years in the range 2009 to 2016. But this should be fine because graduation rate has stayed consistent over time. 
+```{r message=FALSE, warning=FALSE}
+summary(college.train.highR.year.com$YEAR)
+grid.arrange(grad.rate.bar, grad.rate.train.bar, ncol=2)
+```
+
+We now have 2682 observations for the train data and 1165 observations for the test data. 
+```{r message=FALSE, warning=FALSE}
+# check # of complete cases:
+sum(complete.cases(college.train.highR))
+sum(complete.cases(college.test.highR.com))
+
+```
+
+Our first regression uses all the explanatory variables. 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+variables <- c("COSTT4_A", "SAT_AVG", "TUITIONFEE_OUT", "NPT4_PUB", "PAR_ED_PCT_1STGEN", "PAR_ED_PCT_HS", "PAR_ED_PCT_PS", "FAMINC")
+variable_desc <- c("Average cost of attendance", "Average SAT score", "Out-of-state tuition and fees", "Average net price for Title IV institutions", "% first-generation students", "% of students whose parents' highest educ is high school", "% of students whose parents' highest educ level - post secondary", "Average family income in real 2015 dollars")
+key <- data.frame(variables, variable_desc)
+kable(key, format = "markdown")
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+# Model 1
+fit1 <- lm(C150_4 ~ COSTT4_A +  + SAT_AVG + TUITIONFEE_OUT + NPT4_PUB + PAR_ED_PCT_1STGEN + PAR_ED_PCT_HS + PAR_ED_PCT_PS + FAMINC, data = college.train.highR.com)
+summary(fit1)
+```
+We found that all variables were significant except for TUITIONFEE_OUT and PAR_ED_PCT_PS. We also have a strong R^2 of 0.76.
+
+
+We ran the regression again but without TUITIONFEE_OUT and PAR_ED_PCT_PS.
+```{r message=FALSE, warning=FALSE}
+# Model 2
+fit2 <- lm(C150_4 ~ COSTT4_A +  + SAT_AVG + TUITIONFEE_OUT + PAR_ED_PCT_1STGEN + PAR_ED_PCT_HS + FAMINC, data = college.train.highR.com)
+summary(fit2)
+```
+This time all explanatory variables are significant and our R^2 remained strong at 0.76.
+
+
+To confirm normality of the residuals:
+```{r message=FALSE, warning=FALSE}
+# check normality of residuals
+plot(fit2$residuals, ylab = "residuals")
+hist(fit2$residuals, main = "Histogram of Residuals", xlab = "Residuals")
+qqnorm(fit2$residuals)
+```
+
+
+Now to predict graduation rate using our model. The resulting RMSE was 0.08.
+```{r message=FALSE, warning=FALSE}
+# predict grad rate with test data:
+predictions <- fit2 %>% predict(college.test.highR.com)
+
+# compute R2, RMSE, and MAE from 2 models:
+results <- data.frame(R2 = R2(predictions, college.test.highR.com$C150_4),
+           RMSE = RMSE(predictions, college.test.highR.com$C150_4),
+           MAE = MAE(predictions, college.test.highR.com$C150_4))
+kable(results, format = "markdown")
+```
+
+
+
+```{r message=FALSE, warning=FALSE}
+# plot of grad rate vs predicted grad rate:
+plot(college.test.highR.com$C150_4, predictions, xlim=c(0.2,1), ylim=c(0.2,1), main = "Plot of Predicted Grad Rates vs Actual", xlab=("Graduation Rate"), ylab=("Predicted Graduation Rate"))
+abline(coef=c(0,1), col = "red")
+
+```
+
+## Conclusion
+
+It can be concluded that factors including average cost of attendance, tuition and fees for out of state students, an institution’s percentage of first generation students, an institution’s percentage of students who’s parents highest education is high school, and average family income are statistically significant in relation to graduation rates. The regression assumption of independence and normal distribution of the error term was confirmed in the residual plots as well as normality of the response variable graduation rate in the histogram. Additionally, the relatively small RMSE (0.07 < 0.5) resulting from the cross validation method suggests that the model will be respectively accurate in practice for predicting graduation rates utilizing the reported explanatory variables. It is notable to state that there is a lack of data on students who do not receive Title IV aid that may result in somewhat biased estimates of collective student outcomes at institutions with low proportions of Title IV aided students as well as the observations regressed on only span from 2009-2016. However, relative to other publicly available data sources that have their own limitations, the data is still likely to be a significant improvement in providing insight for conditions shaping the graduation rates at various institutions.
+
